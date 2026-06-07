@@ -3,6 +3,21 @@ import { createRoot } from "react-dom/client";
 import { recognize } from "tesseract.js";
 import "./styles.css";
 
+let pdfJsPromise;
+
+function loadPdfJs() {
+  if (!pdfJsPromise) {
+    pdfJsPromise = Promise.all([
+      import("pdfjs-dist"),
+      import("pdfjs-dist/build/pdf.worker.min.mjs?url"),
+    ]).then(([pdfJs, worker]) => {
+      pdfJs.GlobalWorkerOptions.workerSrc = worker.default;
+      return pdfJs;
+    });
+  }
+  return pdfJsPromise;
+}
+
 const DIFFICULTIES = [
   { level: 1, label: "가볍게", ratio: 0.15 },
   { level: 2, label: "보통", ratio: 0.25 },
@@ -140,16 +155,48 @@ function App() {
     setOcr({ active: true, progress: 0, current: selectedFiles[0].name });
     const chunks = [];
     try {
-      for (let index = 0; index < selectedFiles.length; index += 1) {
-        const file = selectedFiles[index];
-        setOcr((value) => ({ ...value, current: file.name }));
-        const result = await recognize(file, "eng+kor", {
+      const sources = [];
+
+      for (const file of selectedFiles) {
+        if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
+          const { getDocument } = await loadPdfJs();
+          const pdf = await getDocument({ data: await file.arrayBuffer() }).promise;
+          for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+            sources.push({ type: "pdf", file, pdf, pageNumber });
+          }
+        } else {
+          sources.push({ type: "image", file });
+        }
+      }
+
+      for (let index = 0; index < sources.length; index += 1) {
+        const source = sources[index];
+        const label = source.type === "pdf"
+          ? `${source.file.name} · ${source.pageNumber}/${source.pdf.numPages}페이지`
+          : source.file.name;
+        let imageSource = source.file;
+
+        if (source.type === "pdf") {
+          const page = await source.pdf.getPage(source.pageNumber);
+          const baseViewport = page.getViewport({ scale: 2 });
+          const scale = Math.min(1, 2600 / Math.max(baseViewport.width, baseViewport.height));
+          const viewport = page.getViewport({ scale: 2 * scale });
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d", { alpha: false });
+          canvas.width = Math.ceil(viewport.width);
+          canvas.height = Math.ceil(viewport.height);
+          await page.render({ canvasContext: context, viewport }).promise;
+          imageSource = canvas;
+        }
+
+        setOcr((value) => ({ ...value, current: label }));
+        const result = await recognize(imageSource, "eng+kor", {
           logger: ({ status, progress }) => {
             if (status === "recognizing text") {
               setOcr({
                 active: true,
-                current: file.name,
-                progress: Math.round(((index + progress) / selectedFiles.length) * 100),
+                current: label,
+                progress: Math.round(((index + progress) / sources.length) * 100),
               });
             }
           },
@@ -316,7 +363,7 @@ function App() {
           <span>01</span><div><h2>문장 가져오기</h2><p>사진을 올리거나 직접 입력하세요</p></div>
         </div>
 
-        <input ref={fileInput} type="file" accept="image/*" multiple hidden onChange={handleFiles} />
+        <input ref={fileInput} type="file" accept="image/*,application/pdf,.pdf" multiple hidden onChange={handleFiles} />
         <button className={`drop-zone ${ocr.active ? "loading" : ""}`} onClick={() => !ocr.active && fileInput.current?.click()}>
           <span className="upload-icon"><Icon name={ocr.active ? "spark" : "upload"} size={26} /></span>
           {ocr.active ? (
@@ -327,9 +374,9 @@ function App() {
             </>
           ) : (
             <>
-              <strong>문장 사진 선택하기</strong>
-              <small>여러 장도 한 번에 가능해요 · JPG, PNG, HEIC</small>
-              {files.length > 0 && <span className="file-count"><Icon name="image" size={15} /> {files.length}장 불러옴</span>}
+              <strong>사진 또는 PDF 선택하기</strong>
+              <small>여러 파일도 한 번에 가능해요 · JPG, PNG, HEIC, PDF</small>
+              {files.length > 0 && <span className="file-count"><Icon name="image" size={15} /> {files.length}개 불러옴</span>}
             </>
           )}
         </button>

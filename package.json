@@ -10,10 +10,10 @@
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
-    "tesseract.js": "latest",
-    "vite": "latest",
+    "pdfjs-dist": "^6.0.227",
     "react": "latest",
-    "react-dom": "latest"
-  },
-  "devDependencies": {}
+    "react-dom": "latest",
+    "tesseract.js": "latest",
+    "vite": "latest"
+  }
 }
