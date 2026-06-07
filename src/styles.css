@@ -72,6 +72,24 @@ button { color: inherit; }
 .text-box textarea::placeholder { color: color-mix(in srgb, var(--muted) 65%, transparent); }
 .text-box footer { display: flex; justify-content: space-between; padding: 10px 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 10px; }
 .text-box footer button { border: 0; padding: 0; background: none; color: var(--accent); font-size: 10px; cursor: pointer; }
+.save-set { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+.save-set label { display: block; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--card-strong); }
+.save-set label span { display: block; padding: 8px 12px 0; color: var(--muted); font-size: 9px; font-weight: 700; }
+.save-set input { width: 100%; height: 38px; padding: 0 12px; border: 0; outline: 0; background: transparent; color: var(--text); font-size: 13px; }
+.save-set input::placeholder { color: color-mix(in srgb, var(--muted) 60%, transparent); }
+.save-button { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 78px; border: 0; border-radius: 14px; background: var(--green); color: var(--bg); font-size: 12px; font-weight: 700; cursor: pointer; }
+.save-button:disabled { background: var(--line); color: var(--muted); cursor: not-allowed; }
+.saved-list { display: grid; gap: 8px; margin-top: 14px; }
+.saved-item { display: flex; align-items: stretch; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--card-strong); }
+.saved-main { display: flex; min-width: 0; flex: 1; align-items: center; gap: 11px; padding: 12px; border: 0; background: transparent; text-align: left; cursor: pointer; }
+.saved-main > span:last-child { min-width: 0; }
+.saved-main b, .saved-main small { display: block; }
+.saved-main b { overflow: hidden; margin-bottom: 4px; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.saved-main small { color: var(--muted); font-size: 9px; }
+.saved-icon { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 auto; border-radius: 11px; background: var(--soft-green); color: var(--green); }
+.delete-button { width: 45px; border: 0; border-left: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; }
+.delete-button:hover { background: rgba(196,62,62,.08); color: #c43e3e; }
+.empty-library { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 14px; padding: 25px 12px; border: 1px dashed var(--line); border-radius: 14px; color: var(--muted); font-size: 10px; }
 .setting-block + .setting-block { margin-top: 27px; padding-top: 25px; border-top: 1px solid var(--line); }
 .setting-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 13px; }
 .setting-label b { font-size: 13px; }
@@ -132,5 +150,7 @@ button { color: inherit; }
 @media (max-width: 370px) {
   .app { padding-left: 13px; padding-right: 13px; }
   .panel { padding-left: 14px; padding-right: 14px; }
+  .save-set { grid-template-columns: 1fr; }
+  .save-button { min-height: 44px; }
   .mode-grid { grid-template-columns: 1fr; }
 }

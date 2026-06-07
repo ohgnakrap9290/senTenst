@@ -31,6 +31,17 @@ const SAMPLE_TEXT = `Small steps make a big difference.
 Learning another language opens a new window.
 포기하지 않으면 분명히 성장할 수 있다.`;
 
+const STORAGE_KEY = "sentenst-sentence-sets";
+
+function loadSavedSets() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    return Array.isArray(stored) ? stored : [];
+  } catch {
+    return [];
+  }
+}
+
 function shuffle(items) {
   const next = [...items];
   for (let index = next.length - 1; index > 0; index -= 1) {
@@ -114,6 +125,14 @@ function Icon({ name, size = 20 }) {
     check: <path d="m5 12 4 4L19 6" />,
     refresh: <path d="M20 7v5h-5M4 17v-5h5m9.5-4A8 8 0 0 0 5.3 6M5.5 16A8 8 0 0 0 18.7 18" />,
     spark: <path d="m12 2 1.5 5.5L19 9l-5.5 1.5L12 16l-1.5-5.5L5 9l5.5-1.5L12 2Zm7 13 .7 2.3L22 18l-2.3.7L19 21l-.7-2.3L16 18l2.3-.7L19 15Z" />,
+    folder: <path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />,
+    save: (
+      <>
+        <path d="M5 3h12l2 2v16H5V3Z" />
+        <path d="M8 3v6h8V3M8 21v-7h8v7" />
+      </>
+    ),
+    trash: <path d="M4 7h16M9 7V4h6v3m3 0-1 14H7L6 7m4 4v6m4-6v6" />,
   };
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -136,6 +155,8 @@ function App() {
   const [revealed, setRevealed] = useState(new Set());
   const [checked, setChecked] = useState(false);
   const [results, setResults] = useState([]);
+  const [setName, setSetName] = useState("");
+  const [savedSets, setSavedSets] = useState(loadSavedSets);
   const fileInput = useRef(null);
 
   const sentences = useMemo(() => extractSentences(text), [text]);
@@ -230,6 +251,36 @@ function App() {
     setResults([]);
     setScreen("quiz");
     window.scrollTo(0, 0);
+  }
+
+  function persistSets(nextSets) {
+    setSavedSets(nextSets);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSets));
+  }
+
+  function saveSentenceSet() {
+    const name = setName.trim();
+    if (!name || !sentences.length) return;
+
+    const nextSet = {
+      id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`,
+      name,
+      text: normalizeText(text),
+      sentenceCount: sentences.length,
+      savedAt: new Date().toISOString(),
+    };
+    persistSets([nextSet, ...savedSets]);
+    setSetName("");
+  }
+
+  function loadSentenceSet(savedSet) {
+    setText(savedSet.text);
+    setFiles([]);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function deleteSentenceSet(id) {
+    persistSets(savedSets.filter((savedSet) => savedSet.id !== id));
   }
 
   function answerKey(index) {
@@ -399,7 +450,65 @@ function App() {
 
       <section className="panel">
         <div className="section-title">
-          <span>02</span><div><h2>학습 설정</h2><p>원하는 방식으로 문제를 만들어요</p></div>
+          <span>02</span><div><h2>문장 보관함</h2><p>이름을 붙여 이 기기에 저장하세요</p></div>
+        </div>
+
+        <div className="save-set">
+          <label>
+            <span>문장 세트 이름</span>
+            <input
+              value={setName}
+              onChange={(event) => setSetName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") saveSentenceSet();
+              }}
+              placeholder="예: 영어 수행평가 1단원"
+              maxLength={40}
+            />
+          </label>
+          <button
+            className="save-button"
+            disabled={!setName.trim() || !sentences.length || ocr.active}
+            onClick={saveSentenceSet}
+          >
+            <Icon name="save" size={18} /> 저장
+          </button>
+        </div>
+
+        {savedSets.length > 0 ? (
+          <div className="saved-list">
+            {savedSets.map((savedSet) => (
+              <article className="saved-item" key={savedSet.id}>
+                <button className="saved-main" onClick={() => loadSentenceSet(savedSet)}>
+                  <span className="saved-icon"><Icon name="folder" size={19} /></span>
+                  <span>
+                    <b>{savedSet.name}</b>
+                    <small>
+                      {savedSet.sentenceCount}개 문장 · {new Intl.DateTimeFormat("ko-KR", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                      }).format(new Date(savedSet.savedAt))}
+                    </small>
+                  </span>
+                </button>
+                <button className="delete-button" onClick={() => deleteSentenceSet(savedSet.id)} aria-label={`${savedSet.name} 삭제`}>
+                  <Icon name="trash" size={17} />
+                </button>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-library">
+            <Icon name="folder" size={23} />
+            <span>아직 저장한 문장 세트가 없어요.</span>
+          </div>
+        )}
+      </section>
+
+      <section className="panel">
+        <div className="section-title">
+          <span>03</span><div><h2>학습 설정</h2><p>원하는 방식으로 문제를 만들어요</p></div>
         </div>
 
         <div className="setting-block">
