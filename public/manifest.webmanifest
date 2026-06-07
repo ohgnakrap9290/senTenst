@@ -1,0 +1,21 @@
+{
+  "name": "문장틈",
+  "short_name": "문장틈",
+  "description": "사진과 PDF 속 문장을 빈칸 퀴즈로 학습하세요.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f2ec",
+  "theme_color": "#f4f2ec",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
