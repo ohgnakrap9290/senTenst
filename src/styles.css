@@ -36,6 +36,10 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--bg); transition: background .2s, color .2s; }
+body.quiz-active { height: 100vh; overflow: hidden; }
+@supports (height: 100dvh) {
+  body.quiz-active { height: 100dvh; }
+}
 button, textarea, input { font: inherit; }
 button { color: inherit; }
 .app { width: min(100%, 560px); min-height: 100vh; margin: 0 auto; padding: 22px 18px calc(28px + env(safe-area-inset-bottom)); }
@@ -117,7 +121,10 @@ button { color: inherit; }
 .secondary { margin-top: 9px; border: 1px solid var(--line); background: var(--card); color: var(--text); }
 .start-button { margin-top: 20px; }
 .privacy { margin: 13px 0 0; color: var(--muted); text-align: center; font-size: 10px; }
-.quiz-screen { display: flex; flex-direction: column; }
+.quiz-screen { display: flex; height: 100vh; min-height: 0; flex-direction: column; overflow-x: hidden; overflow-y: auto; overscroll-behavior-y: contain; }
+@supports (height: 100dvh) {
+  .quiz-screen { height: 100dvh; }
+}
 .quiz-header { gap: 14px; }
 .quiz-progress { flex: 1; }
 .quiz-progress > div:first-child { display: flex; justify-content: space-between; margin-bottom: 7px; color: var(--muted); font-size: 10px; }

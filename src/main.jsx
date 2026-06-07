@@ -76,13 +76,29 @@ function normalizeText(text) {
     .trim();
 }
 
+function splitSentenceLine(line) {
+  const sentences = [];
+  let current = "";
+
+  for (const character of line) {
+    current += character;
+    if (/[.!?。！？]/u.test(character)) {
+      if (current.trim()) sentences.push(current.trim());
+      current = "";
+    }
+  }
+
+  if (current.trim()) sentences.push(current.trim());
+  return sentences;
+}
+
 function extractSentences(text) {
   const normalized = normalizeText(text);
   if (!normalized) return [];
 
   const lines = normalized
     .split(/\n+/)
-    .flatMap((line) => line.match(/[^.!?。！？]+[.!?。！？]?/g) || [])
+    .flatMap(splitSentenceLine)
     .map((sentence) => sentence.trim())
     .filter((sentence) => sentence.split(/\s+/).length >= 2);
 
@@ -189,6 +205,11 @@ function App() {
       theme === "dark" ? "#171815" : "#f4f2ec",
     );
   }, [theme]);
+
+  useEffect(() => {
+    document.body.classList.toggle("quiz-active", screen === "quiz");
+    return () => document.body.classList.remove("quiz-active");
+  }, [screen]);
 
   async function runOcr(selectedFiles) {
     if (!selectedFiles.length) return;
