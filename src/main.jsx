@@ -172,6 +172,8 @@ function App() {
   const [revealed, setRevealed] = useState(new Set());
   const [checked, setChecked] = useState(false);
   const [results, setResults] = useState([]);
+  const [unknown, setUnknown] = useState(false);
+  const [hintCounts, setHintCounts] = useState({});
   const [setName, setSetName] = useState("");
   const [savedSets, setSavedSets] = useState(loadSavedSets);
   const fileInput = useRef(null);
@@ -266,6 +268,23 @@ function App() {
     setRevealed(new Set());
     setChecked(false);
     setResults([]);
+    setUnknown(false);
+    setHintCounts({});
+    setScreen("quiz");
+    window.scrollTo(0, 0);
+  }
+
+  function startWrongReview() {
+    const wrongQuestions = results.filter((result) => result.wrong).map((result) => result.question);
+    if (!wrongQuestions.length) return;
+    setQuestions(shuffle(wrongQuestions));
+    setCurrent(0);
+    setAnswers({});
+    setRevealed(new Set());
+    setChecked(false);
+    setResults([]);
+    setUnknown(false);
+    setHintCounts({});
     setScreen("quiz");
     window.scrollTo(0, 0);
   }
@@ -308,12 +327,29 @@ function App() {
     return cleanAnswer(answers[answerKey(index)] || "") === cleanAnswer(question.tokens[index]);
   }
 
+  function revealNextHint() {
+    const blankIndexes = [...question.blanks];
+    const target = blankIndexes.find((index) => {
+      const answerLength = Array.from(cleanAnswer(question.tokens[index])).length;
+      return (hintCounts[index] || 0) < answerLength;
+    });
+    if (target === undefined) return;
+    setHintCounts((value) => ({ ...value, [target]: (value[target] || 0) + 1 }));
+  }
+
+  function hintFor(index) {
+    const answer = Array.from(cleanAnswer(question.tokens[index]));
+    const count = hintCounts[index] || 0;
+    return answer.map((character, characterIndex) => (characterIndex < count ? character : "＿")).join("");
+  }
+
   function completeQuestion() {
     let correct = 0;
     question.blanks.forEach((index) => {
-      if (mode === "tap" || isCorrect(index)) correct += 1;
+      if ((mode === "tap" && !unknown) || (mode === "write" && isCorrect(index))) correct += 1;
     });
-    const result = { correct, total: question.blanks.size };
+    const wrong = mode === "tap" ? unknown : correct < question.blanks.size;
+    const result = { correct, total: question.blanks.size, wrong, question };
     const nextResults = [...results, result];
     setResults(nextResults);
 
@@ -325,11 +361,14 @@ function App() {
     setAnswers({});
     setRevealed(new Set());
     setChecked(false);
+    setUnknown(false);
+    setHintCounts({});
     window.scrollTo(0, 0);
   }
 
   const totalCorrect = results.reduce((sum, result) => sum + result.correct, 0);
   const totalBlanks = results.reduce((sum, result) => sum + result.total, 0);
+  const wrongCount = results.filter((result) => result.wrong).length;
 
   if (screen === "result") {
     const score = totalBlanks ? Math.round((totalCorrect / totalBlanks) * 100) : 100;
@@ -339,10 +378,15 @@ function App() {
         <div className="result-mark"><Icon name="spark" size={34} /></div>
         <p className="eyebrow">학습 완료</p>
         <h1>{score}<span>점</span></h1>
-        <p className="result-copy">{questions.length}개 문장을 모두 풀었어요.<br />빈칸 {totalBlanks}개 중 {totalCorrect}개를 맞혔습니다.</p>
+        <p className="result-copy">
+          {questions.length}개 문장을 모두 풀었어요.<br />
+          {wrongCount > 0 ? `틀리거나 모른 문장이 ${wrongCount}개 있어요.` : "모든 문장을 알고 있어요."}
+        </p>
         <div className="score-bar"><i style={{ width: `${score}%` }} /></div>
-        <button className="primary" onClick={startQuiz}><Icon name="refresh" /> 같은 문장 다시 풀기</button>
-        <button className="secondary" onClick={() => setScreen("setup")}>문장 편집하기</button>
+        {wrongCount > 0 && (
+          <button className="primary" onClick={startWrongReview}><Icon name="refresh" /> 틀린 문장만 계속하기</button>
+        )}
+        <button className={wrongCount > 0 ? "secondary" : "primary"} onClick={() => setScreen("setup")}>학습 끝내기</button>
       </main>
     );
   }
@@ -399,13 +443,33 @@ function App() {
               <span>정답: {[...question.blanks].map((index) => question.tokens[index]).join(" · ")}</span>
             </div>
           )}
+          {Object.values(hintCounts).some(Boolean) && (
+            <div className="hint-note">
+              <span>힌트</span>
+              <b>{[...question.blanks].map((index) => hintFor(index)).join(" · ")}</b>
+            </div>
+          )}
+          {!checked && (
+            <button className="hint-button" onClick={revealNextHint}>
+              <Icon name="spark" size={16} /> 힌트 한 글자 보기
+            </button>
+          )}
         </section>
 
         <div className="quiz-actions">
+          {mode === "tap" && (
+            <button
+              className={`unknown-button ${unknown ? "active" : ""}`}
+              onClick={() => setUnknown((value) => !value)}
+            >
+              <span className="unknown-check">{unknown && <Icon name="check" size={14} />}</span>
+              이 문장은 몰라요
+            </button>
+          )}
           {mode === "write" && !checked && (
             <button className="primary" disabled={!allAnswered} onClick={() => setChecked(true)}>정답 확인 <Icon name="arrow" /></button>
           )}
-          {((mode === "write" && checked) || (mode === "tap" && allRevealed)) && (
+          {((mode === "write" && checked) || (mode === "tap" && (allRevealed || unknown))) && (
             <button className="primary" onClick={completeQuestion}>{current === questions.length - 1 ? "결과 보기" : "다음 문장"} <Icon name="arrow" /></button>
           )}
         </div>
