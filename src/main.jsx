@@ -33,9 +33,26 @@ Learning another language opens a new window.
 
 const STORAGE_KEY = "sentenst-sentence-sets";
 
+function readStorage(key, fallback) {
+  try {
+    return localStorage.getItem(key) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function writeStorage(key, value) {
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function loadSavedSets() {
   try {
-    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    const stored = JSON.parse(readStorage(STORAGE_KEY, "[]"));
     return Array.isArray(stored) ? stored : [];
   } catch {
     return [];
@@ -142,7 +159,7 @@ function Icon({ name, size = 20 }) {
 }
 
 function App() {
-  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
+  const [theme, setTheme] = useState(() => readStorage("theme", "light"));
   const [screen, setScreen] = useState("setup");
   const [text, setText] = useState("");
   const [files, setFiles] = useState([]);
@@ -164,7 +181,7 @@ function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem("theme", theme);
+    writeStorage("theme", theme);
     document.querySelector('meta[name="theme-color"]')?.setAttribute(
       "content",
       theme === "dark" ? "#171815" : "#f4f2ec",
@@ -255,7 +272,7 @@ function App() {
 
   function persistSets(nextSets) {
     setSavedSets(nextSets);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextSets));
+    writeStorage(STORAGE_KEY, JSON.stringify(nextSets));
   }
 
   function saveSentenceSet() {

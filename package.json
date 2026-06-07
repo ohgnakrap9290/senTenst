@@ -15,5 +15,8 @@
     "react-dom": "latest",
     "tesseract.js": "latest",
     "vite": "latest"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-legacy": "^8.0.2"
   }
 }
